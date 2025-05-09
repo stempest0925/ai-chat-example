@@ -1,0 +1,42 @@
+[
+  {
+    "id": "gen-1746778378-uZ2dIANZz3xOmXBoqff9",
+    "provider": "OpenAI",
+    "model": "openai/gpt-3.5-turbo-1106",
+    "object": "chat.completion.chunk",
+    "created": 1746778378,
+    "choices": [
+      {
+        "index": 0,
+        "delta": { "role": "assistant", "content": "元" },
+        "finish_reason": null,
+        "native_finish_reason": null,
+        "logprobs": null
+      }
+    ],
+    "system_fingerprint": "fp_982035f36f"
+  },
+  {
+    "id": "gen-1746778378-uZ2dIANZz3xOmXBoqff9",
+    "provider": "OpenAI",
+    "model": "openai/gpt-3.5-turbo-1106",
+    "object": "chat.completion.chunk",
+    "created": 1746778378,
+    "choices": [
+      {
+        "index": 0,
+        "delta": { "role": "assistant", "content": "" },
+        "finish_reason": null,
+        "native_finish_reason": null,
+        "logprobs": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 12,
+      "completion_tokens": 229,
+      "total_tokens": 241,
+      "prompt_tokens_details": { "cached_tokens": 0 },
+      "completion_tokens_details": { "reasoning_tokens": 0 }
+    }
+  }
+]
