@@ -1,24 +1,20 @@
 import { useState, useEffect, useRef } from "react";
 import * as OPEN_AI from "../constants/openAI";
 
-class GPTSimpleError extends Error {
-  type: "OtherError" | "UnSupportedError";
-
-  constructor(message: string, type: "OtherError" | "UnSupportedError") {
-    super(message);
-    this.type = type;
-  }
+interface IProps {
+  onUpdate: (content: string) => void;
+  onComplete: () => void;
+  onTokens: (tokens: number) => void;
 }
 
-export default function useStreamingChat() {
-  // 持续输出buffer
-  const bufferRef = useRef<string>("");
+export default function useStreamingChat({ onUpdate, onComplete, onTokens }: IProps) {
   // 请求状态
   const [isLoading, setIsLoading] = useState<boolean>(false);
   // 可取消
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const sendMessage = async (messages: ChatMessageType[]) => {
+  // 发送方法
+  const sendMessage = async (messages: IChatMessage[]) => {
     setIsLoading(true);
     abortControllerRef.current = new AbortController();
 
@@ -30,7 +26,7 @@ export default function useStreamingChat() {
         signal: abortControllerRef.current.signal,
       });
 
-      if (!response.body) throw new GPTSimpleError("No response.", "OtherError");
+      if (!response.body) throw new Error("No response.");
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -43,7 +39,6 @@ export default function useStreamingChat() {
         // 忽略空行和中间提示
         if (!chunkStr || chunkStr.indexOf("OPENROUTER PROCESSING") > -1) continue;
 
-        console.log(chunkStr);
         const parseChunkStr = chunkStr
           .split("data:")
           .map((line) => line.trim())
@@ -53,30 +48,35 @@ export default function useStreamingChat() {
         for (const str of parseChunkStr) {
           if (str.indexOf("[DONE]") > -1) continue; // 结束标记有时候会与数据流一并推送，如果在空行部分break，则会缺失内容
 
-          const data: ChatResponseChunkType = JSON.parse(str);
+          const data: IChatResponseChunk = JSON.parse(str);
+          // if (data.usage && data.usage.total_tokens) {
+          //   onTokens(data.usage.total_tokens);
+          // }
           chunkResult += data.choices[0].delta.content;
         }
 
-        bufferRef.current = bufferRef.current + chunkResult;
+        onUpdate(chunkResult);
       }
+
+      onComplete();
     } catch (error) {
-      console.log("err", error);
-      //   setError((error as Error).message | "与OpenAI服务建立发生错误.");
-      //   这里可以直接渲染state的map，一个错误的对话返回
+      console.log(error, "与OpenAI服务建立发生错误.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const cancelSendMessage = () => {
-    abortControllerRef.current?.abort();
+    // abortControllerRef.current?.abort();
+    // setIsLoading(false);
   };
 
   useEffect(() => {
     return () => {
-      abortControllerRef.current?.abort();
+      // abortControllerRef.current?.abort();
+      // setIsLoading(false);
     };
   }, []);
 
-  return { isLoading, sendMessage, cancelSendMessage, bufferRef };
+  return { isLoading, sendMessage, cancelSendMessage };
 }

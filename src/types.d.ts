@@ -1,13 +1,15 @@
-type ChatMessageType = {
-  role: "user" | "assistant" | "system";
-  content: string;
-};
+type ChatRoleType = "user" | "assistant" | "system";
 
-type ChatResponseChunkType = {
+interface IChatMessage {
+  role: ChatRoleType;
+  content: string;
+}
+
+interface IChatResponseChunk {
   choices: {
     delta: { role: "assistant"; content: string };
   }[];
   usage?: {
     total_tokens: number;
   };
-};
+}

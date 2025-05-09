@@ -1,7 +1,10 @@
 import { Box, Typography, Stack, Paper } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import gptImage from "../assets/images/chatgpt-avatar.jpg";
-import userImage from "../assets/images/user-avatar.jpg";
+import Markdown from "react-markdown";
+import "github-markdown-css/github-markdown.css";
+
+import chatgptAvatar from "../assets/images/chatgpt-avatar.jpg";
+import userAvatar from "../assets/images/user-avatar.jpg";
 
 const Item = styled(Paper)(({ theme }) => ({
   backgroundColor: "#fff",
@@ -24,7 +27,7 @@ export default function ChatMessageItem({ role, content }: IProps) {
               You
             </Typography>
             <Box sx={{ width: 32, height: 32, ml: 1, overflow: "hidden", borderRadius: "50%" }}>
-              <img src={userImage} alt="avatar" style={{ width: "100%", height: "100%" }} />
+              <img src={userAvatar} alt="avatar" style={{ width: "100%", height: "100%" }} />
             </Box>
           </Stack>
 
@@ -41,14 +44,14 @@ export default function ChatMessageItem({ role, content }: IProps) {
       <Stack direction="column" spacing={1} sx={{ alignItems: "flex-start" }}>
         <Stack direction="row" sx={{ alignItems: "center" }}>
           <Box sx={{ width: 32, height: 32, mr: 1, overflow: "hidden", borderRadius: "50%" }}>
-            <img src={gptImage} alt="avatar" style={{ width: "100%", height: "100%" }} />
+            <img src={chatgptAvatar} alt="avatar" style={{ width: "100%", height: "100%" }} />
           </Box>
           <Typography component="h4" sx={{ color: "#000000", fontWeight: 700 }}>
             ChatGPT
           </Typography>
         </Stack>
-        <Box sx={{ py: 0.5, pl: 5 }}>
-          <Typography>{content}</Typography>
+        <Box className="markdown-body" sx={{ py: 0.5, pl: 5 }}>
+          <Markdown>{content}</Markdown>
         </Box>
       </Stack>
     </Item>
