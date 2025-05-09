@@ -1,20 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import * as OPEN_AI from "../constants/openAI";
 
-type GPTMessageType = {
-  role: "user" | "assistant" | "system";
-  content: string;
-};
-
-type GPTResponseChunkType = {
-  choices: {
-    delta: { role: "assistant"; content: string };
-  }[];
-  usage?: {
-    total_tokens: number;
-  };
-};
-
 class GPTSimpleError extends Error {
   type: "OtherError" | "UnSupportedError";
 
@@ -32,7 +18,7 @@ export default function useStreamingChat() {
   // 可取消
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const sendMessage = async (messages: GPTMessageType[]) => {
+  const sendMessage = async (messages: ChatMessageType[]) => {
     setIsLoading(true);
     abortControllerRef.current = new AbortController();
 
@@ -67,7 +53,7 @@ export default function useStreamingChat() {
         for (const str of parseChunkStr) {
           if (str.indexOf("[DONE]") > -1) continue; // 结束标记有时候会与数据流一并推送，如果在空行部分break，则会缺失内容
 
-          const data: GPTResponseChunkType = JSON.parse(str);
+          const data: ChatResponseChunkType = JSON.parse(str);
           chunkResult += data.choices[0].delta.content;
         }
 
