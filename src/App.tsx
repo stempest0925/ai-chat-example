@@ -1,5 +1,5 @@
 import React from "react";
-import { CssBaseline, Container, Box } from "@mui/material";
+import { CssBaseline, Box } from "@mui/material";
 
 import ChatMessage from "./components/ChatMessage";
 import ChatInput from "./components/ChatInput";

@@ -1,17 +1,27 @@
 import { useState, useEffect, useRef } from "react";
 import * as OPEN_AI from "../constants/openAI";
+import { throttle } from "lodash";
 
 interface IProps {
-  onUpdate: (content: string) => void;
-  onComplete: () => void;
-  // onTokens: (tokens: number) => void;
+  baseUrl: string;
+  authKey: string;
+  onUpdate?: (content: string) => void;
+  onComplete: (fullContent: string) => void;
+  onError: (error: Error) => void;
+  scrollContainer?: HTMLElement | null;
 }
 
-export default function useStreamingChat({ onUpdate, onComplete }: IProps) {
+export default function useStreamChat({ baseUrl, authKey, onUpdate, onComplete, onError, scrollContainer }: IProps) {
   // 请求状态
   const [isLoading, setIsLoading] = useState<boolean>(false);
   // 可取消
   const abortControllerRef = useRef<AbortController | null>(null);
+  // 节流滚动
+  const throttleScrollRef = useRef(
+    throttle((container: HTMLElement) => {
+      container.scrollTo({ top: container.scrollHeight });
+    }, 100)
+  );
 
   // 发送方法
   const sendMessage = async (messages: IChatMessage[]) => {
@@ -19,63 +29,85 @@ export default function useStreamingChat({ onUpdate, onComplete }: IProps) {
     abortControllerRef.current = new AbortController();
 
     try {
-      const response = await fetch(OPEN_AI.API_ADDRESS, {
+      const response = await fetch(baseUrl, {
         method: "post",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPEN_AI.API_KEY}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authKey}` },
         body: JSON.stringify({ model: OPEN_AI.MODEL, messages, stream: true }),
         signal: abortControllerRef.current.signal,
       });
-
+      if (!response.ok) throw new Error("Call api error.");
       if (!response.body) throw new Error("No response.");
 
       const reader = response.body.getReader();
-      const decoder = new TextDecoder();
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      const fullContent = await processOpenAIStream(reader);
 
-        const chunkStr = decoder.decode(value, { stream: true }).trim();
-        console.log(chunkStr)
-        // 忽略空行和中间提示
-        if (!chunkStr || chunkStr.indexOf("OPENROUTER PROCESSING") > -1) continue;
-
-        const parseChunkStr = chunkStr
-          .split("data:")
-          .map((line) => line.trim())
-          .filter((line) => line);
-
-        let chunkResult = "";
-        for (const str of parseChunkStr) {
-          if (str.indexOf("[DONE]") > -1) continue; // 结束标记有时候会与数据流一并推送，如果在空行部分break，则会缺失内容
-
-          const data: IChatResponseChunk = JSON.parse(str);
-          // if (data.usage && data.usage.total_tokens) {
-          //   onTokens(data.usage.total_tokens);
-          // }
-          chunkResult += data.choices[0].delta.content;
-        }
-
-        onUpdate(chunkResult);
-      }
-
-      onComplete();
+      onComplete(fullContent);
     } catch (error) {
-      console.log(error, "与OpenAI服务建立发生错误.");
+      onError(error as Error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // 处理OpenAI流式数据（已改为官方处理模版）
+  const processOpenAIStream = async (reader: ReadableStreamDefaultReader) => {
+    if (!reader) onError(new Error("Response body is not readable."));
+
+    const decoder = new TextDecoder();
+    let fullContent = "";
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        while (true) {
+          const lineEnd = buffer.indexOf("\n");
+          if (lineEnd === -1) break;
+
+          const line = buffer.slice(0, lineEnd).trim();
+          buffer = buffer.slice(lineEnd + 1);
+
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data === "[DONE]") break;
+
+            try {
+              const parsed: IChatResponseChunk = JSON.parse(data);
+              const content = parsed.choices[0].delta.content;
+
+              if (content) {
+                fullContent += content;
+                if (onUpdate) onUpdate(content);
+                if (scrollContainer) {
+                  throttleScrollRef.current(scrollContainer);
+                }
+              }
+            } catch (e) {
+              onError(e as Error);
+            }
+          }
+        }
+      }
+      return fullContent;
+    } finally {
+      reader.cancel();
+    }
+  };
+
+  // 取消发送
   const cancelSendMessage = () => {
-    // abortControllerRef.current?.abort();
-    // setIsLoading(false);
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
   };
 
   useEffect(() => {
     return () => {
-      // abortControllerRef.current?.abort();
-      // setIsLoading(false);
+      cancelSendMessage();
     };
   }, []);
 
