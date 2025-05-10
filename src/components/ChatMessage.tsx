@@ -1,32 +1,34 @@
-import { Typography, Stack } from "@mui/material";
+import { Typography, Stack, Container, Box } from "@mui/material";
 import ChatMessageItem from "./ChatMessageItem";
 import { useChatStore } from "../store";
 
 export default function ChatMessage() {
-  const messages = useChatStore((state) => state.messages);
+  const historyMessages = useChatStore((state) => state.historyMessages);
 
   return (
-    <Stack>
-      <Stack sx={{ alignItems: "center", py: 1 }}>
-        <Typography component="h1" sx={{ fontSize: 26, fontWeight: 900 }}>
-          AI Chat
-        </Typography>
-      </Stack>
-      <Stack>
-        {messages.map((message) => {
-          return <ChatMessageItem key={message.id} role={message.role} content={message.content} />;
-        })}
-        <ChatStreamMessage />
-      </Stack>
-    </Stack>
+    <Box sx={{ height: "100%", overflowY: "scroll" }}>
+      <Container maxWidth="md" sx={{ pb: "80px" }}>
+        <Stack sx={{ alignItems: "center", py: 1 }}>
+          <Typography component="h1" sx={{ fontSize: 26, fontWeight: 900 }}>
+            AI Chat
+          </Typography>
+        </Stack>
+        <Stack>
+          {historyMessages.map((message) => {
+            return <ChatMessageItem key={message.id} role={message.role} content={message.content} />;
+          })}
+          <ChatStreamMessage />
+        </Stack>
+      </Container>
+    </Box>
   );
 }
 
 function ChatStreamMessage() {
-  const streamingMsg = useChatStore((state) => state.streamingMsg);
-  
-  if (streamingMsg) {
-    return <ChatMessageItem role={streamingMsg.role} content={streamingMsg.content} />;
+  const pendingMessage = useChatStore((state) => state.pendingMessage);
+
+  if (pendingMessage) {
+    return <ChatMessageItem role={pendingMessage.role} content={pendingMessage.content} />;
   }
   return null;
 }

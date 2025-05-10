@@ -1,26 +1,24 @@
 import { useEffect, useState } from "react";
-import { Stack, TextField, Button } from "@mui/material";
+import { Stack, TextField, Button, Container, Box } from "@mui/material";
 // import SendIcon from "@mui/icons-material/Send";
-import useStreamingChat from "../hooks/useStreamingChat";
+import useStreamingChat from "../hooks/useStreamingChat copy";
 import { useChatStore } from "../store";
 
 export default function ChatInput() {
   const [question, setQuestion] = useState<string>("");
 
-  const messages = useChatStore((state) => state.messages);
-  const addMessage = useChatStore((state) => state.addMessage);
+  const historyMessages = useChatStore((state) => state.historyMessages);
 
-  const onUpdate = useChatStore((state) => state.setStreamingMsg);
-  const onComplete = useChatStore((state) => state.completeStreamingMsg);
-  const onTokens = useChatStore((state) => state.setTokens);
+  const { setStreamingContent: onUpdate, completePendingMessage: onComplete, addUserMessage } = useChatStore();
+  // const onTokens = useChatStore((state) => {});
 
-  const { sendMessage, isLoading } = useStreamingChat({ onUpdate, onComplete, onTokens });
+  const { sendMessage, isLoading } = useStreamingChat({ onUpdate, onComplete });
 
   useEffect(() => {
-    if (messages.length > 0) {
-      sendMessage(messages);
+    if (historyMessages.length > 0) {
+      sendMessage(historyMessages);
     }
-  }, [messages]);
+  }, [historyMessages]);
 
   const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setQuestion(event.target.value);
@@ -31,16 +29,20 @@ export default function ChatInput() {
     }
   };
   const handleClick = () => {
-    addMessage({ id: Date.now().toString(), role: "user", content: question });
+    addUserMessage({ id: Date.now().toString(), role: "user", content: question });
     setQuestion("");
   };
 
   return (
-    <Stack direction="row" spacing={1}>
-      <TextField fullWidth value={question} onChange={onInputChange} onKeyDown={onEnterKeyDown} />
-      <Button variant="contained" disabled={!question.trim()} onClick={handleClick}>
-        Send
-      </Button>
-    </Stack>
+    <Box sx={{ width: "100%", position: "absolute", bottom: 0 }}>
+      <Container maxWidth="md">
+        <Stack direction="row" spacing={1}>
+          <TextField fullWidth value={question} onChange={onInputChange} onKeyDown={onEnterKeyDown} />
+          <Button variant="contained" disabled={!question.trim()} onClick={handleClick}>
+            Send
+          </Button>
+        </Stack>
+      </Container>
+    </Box>
   );
 }

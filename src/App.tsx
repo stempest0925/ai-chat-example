@@ -1,5 +1,5 @@
 import React from "react";
-import { CssBaseline, Container } from "@mui/material";
+import { CssBaseline, Container, Box } from "@mui/material";
 
 import ChatMessage from "./components/ChatMessage";
 import ChatInput from "./components/ChatInput";
@@ -8,10 +8,10 @@ function App() {
   return (
     <React.Fragment>
       <CssBaseline />
-      <Container maxWidth="md" sx={{ minHeight: "100%", p: 0 }}>
+      <Box sx={{ width: "100%", height: "100%", position: "relative" }}>
         <ChatMessage />
         <ChatInput />
-      </Container>
+      </Box>
     </React.Fragment>
   );
 }

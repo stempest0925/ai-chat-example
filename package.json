@@ -15,7 +15,6 @@
     "@mui/material": "^7.1.0",
     "github-markdown-css": "^5.8.1",
     "immer": "^10.1.1",
-    "openai": "^4.98.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-markdown": "^10.1.0",

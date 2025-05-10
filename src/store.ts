@@ -6,65 +6,93 @@ interface IMessages extends IChatMessage {
 }
 
 interface ChatState {
-  nowTokens: number; // tokens
-  messages: IMessages[]; // 历史信息
-  streamingMsg: IMessages | null; // 推送信息
+  currentTokens: number; // tokens
+  historyMessages: IMessages[]; // 历史信息
+  pendingMessage: IMessages | null; // 推送信息
+  isPending: boolean;
 
-  addMessage: (message: IMessages) => void;
-  setStreamingMsg: (content: string) => void;
-  completeStreamingMsg: () => void;
-  setTokens: (tokens: number) => void;
-  getContextMessages: () => IMessages[];
+  addUserMessage: (message: IMessages) => void;
+  preparePendingMessage: () => void;
+  setStreamingContent: (content: string) => void;
+  setPendingError: (content: string) => void;
+  completePendingMessage: () => void;
+  // setTokens: (tokens: number) => void;
+  // getContextMessages: (maxTokens: number) => IMessages[];
 }
 
 export const useChatStore = create<ChatState>()(
   immer((set, get) => ({
-    nowTokens: 0,
-    messages: [],
-    streamingMsg: null,
-    // 添加信息
-    addMessage: (message) => {
+    currentTokens: 0,
+    historyMessages: [],
+    pendingMessage: null,
+    isPending: false,
+    // 添加用户信息
+    addUserMessage: (message) => {
       set((state) => {
-        state.messages.push(message);
-        state.streamingMsg = {
-          id: Date.now().toString(),
+        state.historyMessages.push(message);
+      });
+    },
+    // 准备流式信息
+    preparePendingMessage: () => {
+      set((state) => {
+        state.pendingMessage = {
+          id: "streaming-" + Date.now(),
           role: "assistant",
           content: "",
         };
+        state.isPending = true;
       });
     },
     // 设置流式内容
-    setStreamingMsg: (content) => {
+    setStreamingContent: (content) => {
       set((state) => {
-        if (state.streamingMsg) {
-          state.streamingMsg.content += content;
+        if (state.pendingMessage) {
+          state.pendingMessage.content += content;
         }
+      });
+    },
+    // 设置流式错误 1. 所在的地区不受支持 2. 与 OpenAI 服务器交互出现问题 3.当前对话已超出 ChatGPT 的最大长度限制
+    setPendingError: (content) => {
+      set((state) => {
+        state.historyMessages.push(
+          state.pendingMessage
+            ? { ...state.pendingMessage, content }
+            : {
+                id: "streaming-" + Date.now(),
+                role: "assistant",
+                content,
+              }
+        );
+        state.pendingMessage = null;
+        state.isPending = false;
       });
     },
     // 完成流式信息
-    completeStreamingMsg: () => {
+    completePendingMessage: () => {
       set((state) => {
-        if (state.streamingMsg) {
-          state.messages.push(state.streamingMsg);
-          state.streamingMsg = null;
+        if (state.pendingMessage) {
+          state.historyMessages.push(state.pendingMessage);
+          state.pendingMessage = null;
+          state.isPending = false;
         }
       });
     },
-    // 设置 Tokens
-    setTokens: (tokens) => {
-      set((state) => (state.nowTokens = tokens));
-    },
-    // 获取最新的上下文信息
-    getContextMessages: () => {
-      const { nowTokens, messages } = get();
-      const lens = messages.length;
 
-      if (nowTokens < 16000 && lens > 1) {
-        const arr = messages.slice(1, lens);
-        return arr;
-      } else {
-        return messages;
-      }
-    },
+    // 设置 Tokens
+    // setTokens: (tokens) => {
+    //   set((state) => (state.nowTokens = tokens));
+    // },
+    // 获取最新的上下文信息
+    // getContextMessages: () => {
+    //   const { nowTokens, messages } = get();
+    //   const lens = messages.length;
+
+    //   if (nowTokens < 16000 && lens > 1) {
+    //     const arr = messages.slice(1, lens);
+    //     return arr;
+    //   } else {
+    //     return messages;
+    //   }
+    // },
   }))
 );
